@@ -22,7 +22,7 @@ export default function SheetMusicTab({ songId }: { songId: string }) {
     if (r.ok) {
       const d = await r.json()
       setSheets(d)
-      if (d.length > 0) loadAnnotations(d[0].id)
+      if (d.length > 0) await loadAnnotations(d[0].id)
     }
   }
 
@@ -68,6 +68,7 @@ export default function SheetMusicTab({ songId }: { songId: string }) {
   }
 
   async function deleteAnnotation(id: string) {
+    if (!confirm('确认删除此标注？')) return
     await fetch(`/api/annotations/${id}`, { method: 'DELETE' })
     setAnnotations(prev => prev.filter(a => a.id !== id))
     setActiveAnnotation(null)

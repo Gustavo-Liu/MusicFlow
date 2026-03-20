@@ -20,7 +20,23 @@ export async function POST(req: Request) {
     const song = await db.song.findUnique({ where: { id: songId } })
     if (!song) return NextResponse.json({ error: '歌曲不存在' }, { status: 404 })
 
-    const prompt = `Search for the complete original lyrics of the art song "${song.title}"${song.composer ? ` by ${song.composer}` : ''}.
+    // Try lyrics.ovh first (fast, no key needed)
+    let content: string | null = null
+    try {
+      const artist = encodeURIComponent(song.composer || 'unknown')
+      const title = encodeURIComponent(song.title)
+      const r = await fetch(`https://api.lyrics.ovh/v1/${artist}/${title}`)
+      if (r.ok) {
+        const d = await r.json()
+        if (d.lyrics?.trim()) content = d.lyrics.trim()
+      }
+    } catch {
+      // lyrics.ovh failed, will fallback to supermind
+    }
+
+    // Fallback: supermind web search
+    if (!content) {
+      const prompt = `Search for the complete original lyrics of the art song "${song.title}"${song.composer ? ` by ${song.composer}` : ''}.
 
 When you have found the lyrics, output the exact line:
 ===OUTPUT===
@@ -29,19 +45,18 @@ Then immediately provide ONLY the lyrics text with no other content before or af
 - Do not include title, composer name, copyright notices, source attribution, or any commentary
 - If the song is not in English, return the original language text`
 
-    const response = await ai.chat.completions.create({
-      model: 'supermind-agent-v1',
-      messages: [{ role: 'user', content: prompt }],
-    })
+      const response = await ai.chat.completions.create({
+        model: 'supermind-agent-v1',
+        messages: [{ role: 'user', content: prompt }],
+      })
 
-    const raw = response.choices[0]?.message?.content?.trim()
-    if (!raw) return NextResponse.json({ error: '未找到歌词' }, { status: 404 })
-
-    const MARKER = '===OUTPUT==='
-    const markerIdx = raw.indexOf(MARKER)
-    const content = markerIdx >= 0
-      ? raw.slice(markerIdx + MARKER.length).trim()
-      : raw  // fallback: use full response
+      const raw = response.choices[0]?.message?.content?.trim()
+      if (raw) {
+        const MARKER = '===OUTPUT==='
+        const idx = raw.indexOf(MARKER)
+        content = idx >= 0 ? raw.slice(idx + MARKER.length).trim() : raw
+      }
+    }
 
     if (!content) return NextResponse.json({ error: '未找到歌词' }, { status: 404 })
 

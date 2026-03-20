@@ -1,14 +1,18 @@
 ## ADDED Requirements
 
 ### Requirement: 用户可以搜索艺术歌曲原文歌词
-系统 SHALL 根据曲名（和可选的作曲家名）从外部歌词数据源获取并展示该艺术歌曲的原文歌词。
+系统 SHALL 优先通过 `lyrics.ovh` API 搜索歌词（快速、无 key），找不到时 fallback 到 `supermind-agent-v1` 网页搜索，根据曲名和作曲家获取原文歌词。
 
 #### Scenario: 搜索成功返回歌词
 - **WHEN** 用户在某首歌曲的详情页触发"搜索歌词"操作
 - **THEN** 系统从数据源获取歌词并在页面中展示，保留原文语言的排版（分节/分行）
 
+#### Scenario: 主数据源未找到时 fallback
+- **WHEN** `lyrics.ovh` 未找到歌词
+- **THEN** 系统 SHALL 自动尝试 `supermind-agent-v1` 网页搜索作为后备，用户无感知
+
 #### Scenario: 歌词未找到时的处理
-- **WHEN** 外部数据源无法找到对应歌词
+- **WHEN** 所有数据源均无法找到对应歌词
 - **THEN** 系统 SHALL 显示"未找到歌词"提示，并提供手动输入歌词的入口
 
 #### Scenario: 搜索失败（网络/API 错误）

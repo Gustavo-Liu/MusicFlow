@@ -44,21 +44,22 @@
 - 替代方案：Genius API（覆盖率有限，需额外 key）、YouTube Data API v3（配额限制，需额外 key）
 - **降级策略**：supermind 搜索失败时，允许用户手动粘贴歌词
 
-### 4. 歌词翻译：AI Builders chat completions（逐词翻译）
+### 4. 歌词翻译：Google Translate API（逐行翻译）
 
 **选择理由：**
-- 用 `gpt-5`（AI Builders 上的 OpenAI passthrough）生成逐词（word-by-word）中文注解
-- 同一 `AI_BUILDER_TOKEN` 复用，无需额外 key
-- 替代方案：`grok-4-fast`（实测 JSON 输出不稳定，需要额外清洗）、DeepL（不支持逐词格式）
-- **成本**：每首艺术歌曲约 500-1000 token，成本可忽略不计
+- Google Translate REST API 响应极快（< 1s），远优于 LLM 方案（5-10s）
+- 逐行翻译质量稳定，不存在 JSON 解析失败风险
+- 使用现有 Google API key（`GOOGLE_API_KEY`），无需额外账号
+- 替代方案：`gpt-5`（慢，有 JSON 解析问题）、DeepL（需单独注册）
 
 ### 5. AI 模型分工
 
-| 任务 | 模型 | 理由 |
+| 任务 | 服务 | 理由 |
 |------|------|------|
-| 歌词搜索 | `supermind-agent-v1` | 内置 web search，无需外部 API |
-| 视频搜索 | `supermind-agent-v1` | 内置 web search，无需外部 API |
-| 逐词翻译 | `gpt-5` | JSON 输出稳定，OpenAI 原生 |
+| 歌词搜索（主） | `lyrics.ovh` 免费 API | 快速，无 key，覆盖主流曲目 |
+| 歌词搜索（fallback） | `supermind-agent-v1` | 冷门曲目兜底 |
+| 视频搜索 | YouTube Data API v3 | < 1s，真实缩略图，有 YouTube key |
+| 逐行翻译 | Google Translate 免费端点 | < 1s，无 key 限制 |
 
 所有 AI 调用通过同一个 OpenAI SDK 实例：
 ```typescript

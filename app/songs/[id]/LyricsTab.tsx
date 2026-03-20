@@ -2,11 +2,25 @@
 
 import { useEffect, useState } from 'react'
 
-type WordEntry = { word: string; translation: string }
+type LineEntry = { original: string; translation: string }
+
+const btn = (primary: boolean, disabled?: boolean): React.CSSProperties => ({
+  padding: '0.55rem 1.25rem',
+  border: primary ? 'none' : '1px solid var(--rule)',
+  borderRadius: '1px',
+  backgroundColor: primary ? (disabled ? 'var(--rule)' : 'var(--ink)') : 'transparent',
+  color: primary ? 'var(--white)' : 'var(--ink-muted)',
+  fontSize: '0.7rem',
+  letterSpacing: '0.18em',
+  textTransform: 'uppercase',
+  cursor: disabled ? 'default' : 'pointer',
+  fontFamily: 'inherit',
+  transition: 'all 0.15s',
+})
 
 export default function LyricsTab({ songId }: { songId: string }) {
   const [lyrics, setLyrics] = useState<string | null>(null)
-  const [translation, setTranslation] = useState<WordEntry[][] | null>(null)
+  const [translation, setTranslation] = useState<LineEntry[] | null>(null)
   const [manualInput, setManualInput] = useState('')
   const [showManual, setShowManual] = useState(false)
   const [loadingLyrics, setLoadingLyrics] = useState(false)
@@ -60,92 +74,90 @@ export default function LyricsTab({ songId }: { songId: string }) {
     const d = await r.json()
     if (r.ok) {
       const data = d.translation
-      if (!data || data.length === 0) {
-        alert('翻译结果为空，请重试')
-      } else {
-        setTranslation(data)
-      }
+      if (!data || data.length === 0) alert('翻译结果为空，请重试')
+      else setTranslation(data)
     } else {
       alert(d.error || '翻译失败')
     }
     setLoadingTranslation(false)
   }
 
-  return (
-    <div className="space-y-4">
-      {!lyrics ? (
-        <div className="space-y-3">
-          <button
-            onClick={searchLyrics}
-            disabled={loadingLyrics}
-            className="w-full bg-neutral-900 text-white rounded-lg py-2.5 text-sm font-medium disabled:opacity-40"
-          >
-            {loadingLyrics ? '搜索中，请稍候（约15秒）…' : '搜索歌词'}
-          </button>
-          <button
-            onClick={() => setShowManual(!showManual)}
-            className="w-full border border-neutral-200 rounded-lg py-2.5 text-sm text-neutral-600"
-          >
-            手动输入歌词
-          </button>
-          {showManual && (
-            <div className="space-y-2">
-              <textarea
-                className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm h-40 outline-none focus:ring-2 focus:ring-neutral-900 resize-none"
-                placeholder="粘贴歌词…"
-                value={manualInput}
-                onChange={e => setManualInput(e.target.value)}
-              />
-              <button
-                onClick={saveLyrics}
-                disabled={!manualInput.trim()}
-                className="w-full bg-neutral-900 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-40"
-              >
-                保存
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Lyrics display */}
-          {!translation ? (
-            <div className="bg-white rounded-xl border border-neutral-200 p-4">
-              <pre className="text-sm whitespace-pre-wrap font-sans leading-7">{lyrics}</pre>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-neutral-200 p-4 space-y-3">
-              {translation.map((line, i) => (
-                <div key={i} className="flex flex-wrap gap-x-3 gap-y-1">
-                  {line.map((entry, j) => (
-                    <span key={j} className="flex flex-col items-center">
-                      <span className="text-sm font-medium">{entry.word}</span>
-                      <span className="text-xs text-neutral-400">{entry.translation}</span>
-                    </span>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!translation && (
-            <button
-              onClick={getTranslation}
-              disabled={loadingTranslation}
-              className="w-full bg-neutral-900 text-white rounded-lg py-2.5 text-sm font-medium disabled:opacity-40"
-            >
-              {loadingTranslation ? '翻译中…' : '获取逐词翻译'}
+  if (!lyrics) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <button onClick={searchLyrics} disabled={loadingLyrics} style={btn(true, loadingLyrics)}>
+          {loadingLyrics ? '搜索中…' : '搜索歌词'}
+        </button>
+        <button onClick={() => setShowManual(!showManual)} style={btn(false)}>
+          手动输入
+        </button>
+        {showManual && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <textarea
+              style={{
+                border: '1px solid var(--rule)', borderRadius: '1px', padding: '0.75rem',
+                fontSize: '0.9rem', fontFamily: 'inherit', height: '10rem', resize: 'vertical',
+                outline: 'none', backgroundColor: 'var(--white)', color: 'var(--ink)',
+              }}
+              placeholder="粘贴歌词…"
+              value={manualInput}
+              onChange={e => setManualInput(e.target.value)}
+            />
+            <button onClick={saveLyrics} disabled={!manualInput.trim()} style={btn(true, !manualInput.trim())}>
+              保存
             </button>
-          )}
+          </div>
+        )}
+      </div>
+    )
+  }
 
-          <button
-            onClick={() => { setLyrics(null); setTranslation(null) }}
-            className="w-full border border-neutral-200 rounded-lg py-2 text-sm text-neutral-400"
-          >
-            重新搜索歌词
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{
+        border: '1px solid var(--rule)',
+        borderRadius: '1px',
+        padding: '1.5rem',
+        backgroundColor: 'var(--white)',
+        lineHeight: 1.9,
+      }}>
+        {!translation ? (
+          <pre className="font-display" style={{
+            fontSize: '1rem', fontWeight: 300, whiteSpace: 'pre-wrap', fontFamily: "'Cormorant Garamond', serif",
+            color: 'var(--ink)', margin: 0,
+          }}>
+            {lyrics}
+          </pre>
+        ) : (
+          <div style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            {translation.map((line, i) =>
+              line.original.trim() === '' ? (
+                <div key={i} style={{ height: '0.8rem' }} />
+              ) : (
+                <div key={i} style={{ marginBottom: '0.1rem' }}>
+                  <p style={{ margin: 0, fontSize: '1rem', fontWeight: 400, color: 'var(--ink)' }}>
+                    {line.original}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--gold)', fontStyle: 'italic', marginBottom: '0.35rem', fontFamily: 'Lato, sans-serif', fontWeight: 300 }}>
+                    {line.translation}
+                  </p>
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        {!translation && (
+          <button onClick={getTranslation} disabled={loadingTranslation} style={btn(true, loadingTranslation)}>
+            {loadingTranslation ? '翻译中…' : '获取译文'}
           </button>
-        </div>
-      )}
+        )}
+        <button onClick={() => { setLyrics(null); setTranslation(null) }} style={btn(false)}>
+          重新搜索
+        </button>
+      </div>
     </div>
   )
 }

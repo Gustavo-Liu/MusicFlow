@@ -8,6 +8,21 @@ import SheetMusicTab from './SheetMusicTab'
 
 type Song = { id: string; title: string; composer: string }
 
+const S: Record<string, React.CSSProperties> = {
+  sectionLabel: {
+    fontSize: '0.62rem',
+    letterSpacing: '0.22em',
+    textTransform: 'uppercase',
+    color: 'var(--ink-muted)',
+    marginBottom: '1rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+  },
+  rule: { height: '1px', flex: 1, backgroundColor: 'var(--rule)' },
+  divider: { height: '1px', backgroundColor: 'var(--rule)', margin: '2.5rem 0' },
+}
+
 export default function SongPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -20,46 +35,75 @@ export default function SongPage() {
       .then(data => { if (!data) router.push('/'); else setSong(data) })
   }, [id, router])
 
-  if (!song) return <p className="text-center text-neutral-400 text-sm py-12">加载中…</p>
+  if (!song) return (
+    <p className="font-display" style={{ textAlign: 'center', color: 'var(--ink-muted)', fontStyle: 'italic', padding: '4rem 0' }}>
+      加载中…
+    </p>
+  )
 
   return (
-    <div className="space-y-6">
-      <div>
-        <button onClick={() => router.push('/')} className="text-sm text-neutral-400 hover:text-neutral-600 mb-2">← 返回</button>
-        <h2 className="text-xl font-semibold">{song.title}</h2>
-        {song.composer && <p className="text-sm text-neutral-500">{song.composer}</p>}
+    <div className="animate-fadeUp" style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+
+      {/* Back + Title */}
+      <div style={{ marginBottom: '2.5rem' }}>
+        <button
+          onClick={() => router.push('/')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: '0.75rem', letterSpacing: '0.1em', padding: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+        >
+          ← 返回曲库
+        </button>
+        <h2 className="font-display" style={{ fontSize: '2.2rem', fontWeight: 300, fontStyle: 'italic', color: 'var(--ink)', margin: 0, lineHeight: 1.1 }}>
+          {song.title}
+        </h2>
+        {song.composer && (
+          <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted)', marginTop: '0.4rem', letterSpacing: '0.05em' }}>
+            {song.composer}
+          </p>
+        )}
+        <div style={{ height: '1px', backgroundColor: 'var(--gold)', width: '3rem', marginTop: '1rem', opacity: 0.7 }} />
       </div>
 
-      {/* 歌词 + 视频：始终保持挂载，滚动式双 section */}
+      {/* Lyrics Section */}
       <section>
-        <h3 className="text-sm font-medium text-neutral-500 mb-3">歌词</h3>
+        <div style={S.sectionLabel}>
+          <span className="font-display" style={{ fontStyle: 'italic' }}>歌词</span>
+          <div style={S.rule} />
+        </div>
         <LyricsTab songId={id} />
       </section>
 
-      <div className="border-t border-neutral-100" />
+      <div style={S.divider} />
 
+      {/* Videos Section */}
       <section>
-        <h3 className="text-sm font-medium text-neutral-500 mb-3">视频</h3>
+        <div style={S.sectionLabel}>
+          <span className="font-display" style={{ fontStyle: 'italic' }}>视频</span>
+          <div style={S.rule} />
+        </div>
         <RecordingsTab songId={id} title={song.title} composer={song.composer} />
       </section>
 
-      <div className="border-t border-neutral-100" />
+      <div style={S.divider} />
 
-      {/* 乐谱：独立切换入口 */}
+      {/* Sheet Music */}
       <section>
         <button
           onClick={() => setShowSheetMusic(v => !v)}
-          className="w-full flex items-center justify-between text-sm font-medium text-neutral-500 hover:text-neutral-800"
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', width: '100%',
+            ...S.sectionLabel, marginBottom: showSheetMusic ? '1rem' : 0,
+          }}
         >
-          <span>乐谱标注</span>
-          <span>{showSheetMusic ? '收起 ↑' : '展开 ↓'}</span>
+          <span className="font-display" style={{ fontStyle: 'italic' }}>乐谱标注</span>
+          <div style={S.rule} />
+          <span style={{ fontSize: '0.7rem' }}>{showSheetMusic ? '↑' : '↓'}</span>
         </button>
-        {showSheetMusic && (
-          <div className="mt-3">
-            <SheetMusicTab songId={id} />
-          </div>
-        )}
+        {/* 始终挂载，避免 unmount 导致标注状态丢失 */}
+        <div style={{ display: showSheetMusic ? 'block' : 'none', marginTop: showSheetMusic ? '1rem' : 0 }}>
+          <SheetMusicTab songId={id} />
+        </div>
       </section>
+
     </div>
   )
 }
