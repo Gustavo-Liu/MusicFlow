@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Song {
+  id          String       @id @default(cuid())
+  title       String
+  composer    String
+  createdAt   DateTime     @default(now())
+  lyric       Lyric?
+  translation Translation?
+  recordings  Recording[]
+  sheetMusics SheetMusic[]
+}
+
+model Lyric {
+  id        String   @id @default(cuid())
+  content   String
+  updatedAt DateTime @updatedAt
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  songId    String   @unique
+}
+
+model Translation {
+  id        String   @id @default(cuid())
+  content   String   // JSON array: [{word, translation}]
+  updatedAt DateTime @updatedAt
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  songId    String   @unique
+}
+
+model Recording {
+  id        String   @id @default(cuid())
+  results   String   // JSON array of video results
+  cachedAt  DateTime @default(now())
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  songId    String   @unique
+}
+
+model SheetMusic {
+  id          String       @id @default(cuid())
+  pages       String       // JSON array of image paths
+  createdAt   DateTime     @default(now())
+  song        Song         @relation(fields: [songId], references: [id], onDelete: Cascade)
+  songId      String
+  annotations Annotation[]
+}
+
+model Annotation {
+  id           String     @id @default(cuid())
+  type         String     // "comment" | "breath"
+  x            Float
+  y            Float
+  pageIndex    Int
+  content      String?
+  createdAt    DateTime   @default(now())
+  sheetMusic   SheetMusic @relation(fields: [sheetMusicId], references: [id], onDelete: Cascade)
+  sheetMusicId String
+}
