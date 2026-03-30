@@ -42,9 +42,11 @@ next-env.d.ts
 
 /app/generated/prisma
 
-# SQLite — keep dev.db in repo so data persists; ignore backup files
+# SQLite — keep dev.db in repo so data persists; ignore backup/WAL files
 *.db.backup
 dev.db.backup
+dev.db-shm
+dev.db-wal
 
 # Local config files with secrets
 env
